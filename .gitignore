@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Files
+flight_price_history.csv
+current_flight_results.csv
