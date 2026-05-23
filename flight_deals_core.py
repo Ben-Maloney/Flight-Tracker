@@ -8,10 +8,23 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SERPAPI_KEY = os.getenv("SERPAPI_KEY")
-EMAIL_FROM = os.getenv("EMAIL_FROM")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-EMAIL_TO = os.getenv("EMAIL_TO")
+def get_secret(key):
+    value = os.getenv(key)
+
+    if value:
+        return value
+
+    try:
+        import streamlit as st
+        return st.secrets.get(key)
+    except Exception:
+        return None
+
+
+SERPAPI_KEY = get_secret("SERPAPI_KEY")
+EMAIL_FROM = get_secret("EMAIL_FROM")
+EMAIL_PASSWORD = get_secret("EMAIL_PASSWORD")
+EMAIL_TO = get_secret("EMAIL_TO")
 
 CSV_FILE = "flight_price_history.csv"
 MAX_LEGS = 4
