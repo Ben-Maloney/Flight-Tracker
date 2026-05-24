@@ -6,7 +6,9 @@ from datetime import datetime
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
 
+
 load_dotenv()
+
 
 def get_secret(key):
     value = os.getenv(key)
@@ -190,7 +192,11 @@ def search_flights(
         params["type"] = "1"
     else:
         params["type"] = "2"
-
+        
+    if not SERPAPI_KEY:
+        raise ValueError(
+            "SERPAPI_KEY is missing. Check Streamlit Secrets."
+        )
     response = requests.get("https://serpapi.com/search", params=params)
     response.raise_for_status()
     return response.json()
