@@ -594,7 +594,6 @@ with st.sidebar:
             "Exact dates",
             "±1 day",
             "±3 days",
-            "±7 days",
         ]
     )
 
@@ -602,7 +601,6 @@ with st.sidebar:
         "Exact dates": 0,
         "±1 day": 1,
         "±3 days": 3,
-        "±7 days": 7,
     }
 
     flex_days = flex_days_map[flex_label]

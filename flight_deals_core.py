@@ -127,24 +127,52 @@ def calculate_deal_score(price, duration_minutes, stops, total_layover_minutes):
         stops = int(stops or 0)
         total_layover_minutes = float(total_layover_minutes or 0)
     except (TypeError, ValueError):
-        return 0, "Unknown"
+        return 0, "Unknown", ""
+
+    duration_hours = duration_minutes / 60
+    layover_hours = total_layover_minutes / 60
 
     score = 100
+    reasons = []
 
     # Price penalty
+    if price <= 250:
+        reasons.append("Cheap fare")
+
     if price > 200:
-        score -= min((price - 200) / 10, 35)
+        penalty = min((price - 200) / 10, 40)
+        score -= penalty
+
+        if penalty >= 20:
+            reasons.append("High price")
 
     # Duration penalty
-    if duration_minutes > 180:
-        score -= min((duration_minutes - 180) / 30, 20)
+    if duration_hours <= 3:
+        reasons.append("Short trip")
+
+    if duration_hours > 3:
+        penalty = min((duration_hours - 3) * 5, 25)
+        score -= penalty
+
+        if penalty >= 10:
+            reasons.append("Long travel time")
 
     # Stops penalty
+    if stops == 0:
+        reasons.append("Nonstop")
+
+    if stops > 0:
+        reasons.append(f"{stops} stop{'s' if stops > 1 else ''}")
+
     score -= stops * 10
 
     # Layover penalty
-    if total_layover_minutes > 60:
-        score -= min((total_layover_minutes - 60) / 20, 20)
+    if layover_hours > 1:
+        penalty = min((layover_hours - 1) * 5, 15)
+        score -= penalty
+
+        if penalty >= 5:
+            reasons.append("Long layovers")
 
     score = max(0, min(100, round(score)))
 
@@ -157,7 +185,7 @@ def calculate_deal_score(price, duration_minutes, stops, total_layover_minutes):
     else:
         label = "Weak"
 
-    return score, label
+    return score, label, ", ".join(reasons)
 
 
 def search_flights(
@@ -312,7 +340,7 @@ def extract_flights(
         legs = flight.get("flights", [])
         stops_count = max(len(legs) - 1, 0)
 
-        deal_score, deal_rating = calculate_deal_score(
+        deal_score, deal_label, deal_score_reason = calculate_deal_score(
             price=price,
             duration_minutes=duration,
             stops=stops_count,
@@ -327,7 +355,8 @@ def extract_flights(
             "price": price,
             "price_label": f"${price} total for {passenger_count} passenger(s)",
             "deal_score": deal_score,
-            "deal_rating": deal_rating,
+            "deal_score_reason": deal_score_reason,
+            "deal_rating": deal_label,
             "duration_minutes": duration,
             "duration_display": minutes_to_hours_minutes(duration),
             "total_layover_minutes": layover_minutes,
