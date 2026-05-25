@@ -873,7 +873,7 @@ with st.sidebar:
 
     email_results = st.checkbox(
         "Email new best deals only",
-        value=True,
+        value=False,
     )
 
     save_history = st.checkbox(
