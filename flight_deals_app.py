@@ -3,7 +3,7 @@ import os
 import streamlit as st
 import pandas as pd
 import folium
-from datetime import timedelta
+from datetime import date, timedelta
 from streamlit_folium import st_folium
 
 from flight_deals_core import (
@@ -260,6 +260,21 @@ def generate_flexible_date_pairs(depart_date, return_date=None, flex_days=0):
                 date_pairs.append((depart, ret))
 
     return date_pairs
+
+def get_next_weekend_dates():
+    today = date.today()
+
+    # Monday=0, Tuesday=1, ..., Friday=4
+    days_until_friday = (4 - today.weekday()) % 7
+
+    if days_until_friday == 0:
+        depart = today
+    else:
+        depart = today + timedelta(days=days_until_friday)
+
+    return_date = depart + timedelta(days=2)
+
+    return depart, return_date
 
 def get_iata_from_display(airports, display_value):
     match = airports.loc[
@@ -668,18 +683,40 @@ with st.sidebar:
             st.rerun()
 
     st.header("Travel Dates")
+    
+    weekend_getaway_mode = st.checkbox(
+        "Weekend getaway mode",
+        value=False,
+        help="Automatically searches the next Friday to Sunday trip."
+)
 
-    round_trip = st.checkbox(
-        "Round trip",
-        value=True,
-    )
+    if weekend_getaway_mode:
+        round_trip = True
+        default_depart_date, default_return_date = get_next_weekend_dates()
+
+        st.info(
+            f"Weekend mode: searching Friday–Sunday, "
+            f"{default_depart_date.strftime('%m/%d/%Y')} to "
+            f"{default_return_date.strftime('%m/%d/%Y')}."
+        )
+
+    else:
+        default_depart_date = date.today()
+        default_return_date = date.today() + timedelta(days=3)
+
+        round_trip = st.checkbox(
+            "Round trip",
+            value=True,
+        )
 
     date_col1, date_col2 = st.columns(2)
 
     with date_col1:
         depart_date = st.date_input(
             "Departure date",
-            format="MM/DD/YYYY"
+            value=default_depart_date,
+            format="MM/DD/YYYY",
+            disabled=weekend_getaway_mode
         )
 
     with date_col2:
@@ -688,7 +725,9 @@ with st.sidebar:
         if round_trip:
             return_date = st.date_input(
                 "Return date",
-                format="MM/DD/YYYY"
+                value=default_return_date,
+                format="MM/DD/YYYY",
+                disabled=weekend_getaway_mode
             )
 
     flex_label = st.selectbox(
@@ -967,6 +1006,11 @@ if search_button:
                         )
 
                         result["date_flexibility"] = flex_label
+                        result["search_mode"] = (
+                            "Weekend Getaway"
+                            if weekend_getaway_mode
+                            else "Standard"
+                        )
 
                     all_results.extend(results)
 
@@ -1208,6 +1252,7 @@ if st.session_state.flight_results_df is not None:
         "route",
         "search_depart_date",
         "search_return_date",
+        "search mode",
         "date_flexibility",
         "passengers",
         "price_label",
@@ -1265,6 +1310,7 @@ if st.session_state.flight_results_df is not None:
         "buy_recommendation": "Should I Buy?",
         "buy_reason": "Why Buy/Wait?",
         "deal_score_reason": "Why This Score",
+        "search_mode": "Search Mode",
         "booking_status": "Booking Status",
         "booking_link": "Booking Link",
         "search_depart_date": "Search Depart Date",
