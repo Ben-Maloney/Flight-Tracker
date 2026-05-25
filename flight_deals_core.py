@@ -369,9 +369,11 @@ def extract_flights(
 
         route_parts = []
         email_leg_lines = []
+        airlines_used = []
 
         for i, leg in enumerate(legs[:MAX_LEGS], start=1):
             airline = leg.get("airline", "Unknown airline")
+            airlines_used.append(airline)
             flight_number = leg.get("flight_number", "")
             leg_duration = leg.get("duration")
 
@@ -424,6 +426,7 @@ def extract_flights(
                 )
 
         row["route"] = " | ".join(route_parts)
+        row["airlines"] = ", ".join(sorted(set(airlines_used)))
         row["flight_details_email"] = " || ".join(email_leg_lines)
 
         results.append(row)
@@ -434,6 +437,7 @@ def extract_flights(
 def get_csv_fieldnames():
     fields = [
         "searched_at",
+        "airlines",
         "origin",
         "destination",
         "search_depart_date",
