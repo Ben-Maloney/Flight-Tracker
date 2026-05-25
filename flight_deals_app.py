@@ -694,7 +694,7 @@ with st.sidebar:
         "Weekend getaway mode",
         value=False,
         help="Automatically searches the next Friday to Sunday trip."
-)
+    )
 
     if weekend_getaway_mode:
         round_trip = True
@@ -1258,7 +1258,7 @@ if st.session_state.flight_results_df is not None:
         "route",
         "search_depart_date",
         "search_return_date",
-        "search mode",
+        "search_mode",
         "date_flexibility",
         "passengers",
         "price_label",
@@ -1315,7 +1315,6 @@ if st.session_state.flight_results_df is not None:
         "route": "Route",
         "buy_recommendation": "Should I Buy?",
         "buy_reason": "Why Buy/Wait?",
-        "deal_score_reason": "Why This Score",
         "search_mode": "Search Mode",
         "booking_status": "Booking Status",
         "booking_link": "Booking Link",
