@@ -175,7 +175,64 @@ def find_price_drops(current_df, history_df):
         ascending=False
     )
 
+def add_buy_recommendation(current_df, history_df):
+    if history_df is None or history_df.empty:
+        current_df = current_df.copy()
+        current_df["buy_recommendation"] = "Not enough history"
+        current_df["buy_reason"] = "Run more searches to build price history."
+        return current_df
 
+    historical_stats = (
+        history_df
+        .groupby(["origin", "destination"], as_index=False)
+        .agg(
+            historical_low=("price", "min"),
+            historical_avg=("price", "mean"),
+            historical_count=("price", "count")
+        )
+    )
+
+    comparison = current_df.merge(
+        historical_stats,
+        on=["origin", "destination"],
+        how="left"
+    )
+
+    def recommend(row):
+        price = row.get("price")
+        historical_low = row.get("historical_low")
+        historical_avg = row.get("historical_avg")
+        historical_count = row.get("historical_count")
+
+        if pd.isna(historical_avg) or historical_count < 3:
+            return "Not enough history", "Need at least 3 saved prices for this route."
+
+        pct_vs_avg = ((price - historical_avg) / historical_avg) * 100
+
+        if price <= historical_low:
+            return "Buy now", "Current price matches or beats your saved historical low."
+
+        if pct_vs_avg <= -15:
+            return "Buy now", f"Current price is {abs(pct_vs_avg):.1f}% below your saved average."
+
+        if pct_vs_avg <= -5:
+            return "Consider buying", f"Current price is {abs(pct_vs_avg):.1f}% below your saved average."
+
+        if pct_vs_avg >= 15:
+            return "Wait", f"Current price is {pct_vs_avg:.1f}% above your saved average."
+
+        return "Neutral", f"Current price is {pct_vs_avg:.1f}% from your saved average."
+
+    recommendations = comparison.apply(
+        lambda row: recommend(row),
+        axis=1,
+        result_type="expand"
+    )
+
+    comparison["buy_recommendation"] = recommendations[0]
+    comparison["buy_reason"] = recommendations[1]
+
+    return comparison
 
 
 def generate_flexible_date_pairs(depart_date, return_date=None, flex_days=0):
@@ -948,6 +1005,16 @@ if st.session_state.flight_results_df is not None:
 
     history_df_before_save = load_price_history()
 
+    df = add_buy_recommendation(
+        current_df=df,
+        history_df=history_df_before_save
+    )
+
+    filtered_df = add_buy_recommendation(
+        current_df=filtered_df,
+        history_df=history_df_before_save
+    )
+
     if email_results and not st.session_state.email_sent_for_current_results:
         better_deals_df = filter_new_best_deals(
             current_df=filtered_df,
@@ -1094,6 +1161,8 @@ if st.session_state.flight_results_df is not None:
             "total_layover_display",
             "stops",
             "route",
+            "buy_recommendation",
+            "buy_reason",
         ]].rename(columns={
             "destination": "Destination",
             "price_label": "Lowest Price",
@@ -1104,6 +1173,8 @@ if st.session_state.flight_results_df is not None:
             "total_layover_display": "Layover Time",
             "stops": "Stops",
             "route": "Route",
+            "buy_recommendation": "Should I Buy?",
+            "buy_reason": "Why Buy/Wait?",
         })
 
         st.dataframe(
@@ -1134,6 +1205,7 @@ if st.session_state.flight_results_df is not None:
         "searched_at",
         "origin",
         "destination",
+        "route",
         "search_depart_date",
         "search_return_date",
         "date_flexibility",
@@ -1146,7 +1218,6 @@ if st.session_state.flight_results_df is not None:
         "duration_display",
         "total_layover_display",
         "stops",
-        "route",
     ]
 
     for i in range(1, MAX_LEGS + 1):
@@ -1191,6 +1262,9 @@ if st.session_state.flight_results_df is not None:
         "total_layover_display": "Total Layover Time",
         "stops": "Stops",
         "route": "Route",
+        "buy_recommendation": "Should I Buy?",
+        "buy_reason": "Why Buy/Wait?",
+        "deal_score_reason": "Why This Score",
         "booking_status": "Booking Status",
         "booking_link": "Booking Link",
         "search_depart_date": "Search Depart Date",
