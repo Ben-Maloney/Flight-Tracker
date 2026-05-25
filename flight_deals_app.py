@@ -580,13 +580,19 @@ with st.sidebar:
     date_col1, date_col2 = st.columns(2)
 
     with date_col1:
-        depart_date = st.date_input("Departure date")
+        depart_date = st.date_input(
+            "Departure date",
+            format="MM/DD/YYYY"
+        )
 
     with date_col2:
         return_date = None
 
         if round_trip:
-            return_date = st.date_input("Return date")
+            return_date = st.date_input(
+                "Return date",
+                format="MM/DD/YYYY"
+            )
 
     flex_label = st.selectbox(
         "Date flexibility",
@@ -651,7 +657,6 @@ with st.sidebar:
         "Southwest",
         "JetBlue",
         "Frontier",
-        "Spirit",
         "Hawaiian",
         "Sun Country"
     ]
