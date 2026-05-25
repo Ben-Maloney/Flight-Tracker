@@ -176,6 +176,12 @@ def find_price_drops(current_df, history_df):
     )
 
 def add_buy_recommendation(current_df, history_df):
+    if current_df is None or current_df.empty:
+        current_df = current_df.copy()
+        current_df["buy_recommendation"] = ""
+        current_df["buy_reason"] = ""
+        return current_df
+        
     if history_df is None or history_df.empty:
         current_df = current_df.copy()
         current_df["buy_recommendation"] = "Not enough history"
