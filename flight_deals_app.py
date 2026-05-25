@@ -1301,6 +1301,7 @@ if st.session_state.flight_results_df is not None:
 
     column_renames = {
         "searched_at": "Searched At",
+        "airlines": "Airlines",
         "origin": "From",
         "destination": "To",
         "passengers": "Passengers",
