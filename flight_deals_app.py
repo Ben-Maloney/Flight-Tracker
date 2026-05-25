@@ -138,6 +138,46 @@ def filter_new_best_deals(current_df, history_df):
 
     return better_deals
 
+
+def find_price_drops(current_df, history_df):
+    if history_df is None or history_df.empty:
+        return pd.DataFrame()
+
+    latest_history = (
+        history_df
+        .sort_values("searched_at")
+        .groupby(["origin", "destination"], as_index=False)
+        .last()
+        [["origin", "destination", "price"]]
+        .rename(columns={"price": "previous_price"})
+    )
+
+    comparison = current_df.merge(
+        latest_history,
+        on=["origin", "destination"],
+        how="left"
+    )
+
+    comparison["price_drop"] = (
+        comparison["previous_price"] - comparison["price"]
+    )
+
+    comparison["price_drop_percent"] = (
+        comparison["price_drop"] / comparison["previous_price"]
+    ) * 100
+
+    price_drops = comparison[
+        comparison["price_drop"] > 0
+    ].copy()
+
+    return price_drops.sort_values(
+        "price_drop",
+        ascending=False
+    )
+
+
+
+
 def generate_flexible_date_pairs(depart_date, return_date=None, flex_days=0):
     depart_dates = [
         depart_date + timedelta(days=offset)
@@ -970,6 +1010,69 @@ if st.session_state.flight_results_df is not None:
             "CSV Updated",
             "Yes" if st.session_state.results_saved_to_csv else "No",
         )
+
+    st.subheader("Price Drops Since Last Search")
+
+    price_drops_df = find_price_drops(
+        current_df=df,
+        history_df=history_df_before_save
+    )
+
+    if price_drops_df.empty:
+        st.info("No price drops found compared with your saved history.")
+    else:
+        price_drop_display = price_drops_df[[
+            "origin",
+            "destination",
+            "price_label",
+            "previous_price",
+            "price_drop",
+            "price_drop_percent",
+            "deal_score",
+            "deal_rating",
+            "duration_display",
+            "stops",
+            "route",
+        ]].rename(columns={
+            "origin": "From",
+            "destination": "To",
+            "price_label": "Current Price",
+            "previous_price": "Previous Price",
+            "price_drop": "Price Drop",
+            "price_drop_percent": "Drop %",
+            "deal_score": "Deal Score",
+            "deal_rating": "Deal Rating",
+            "duration_display": "Travel Time",
+            "stops": "Stops",
+            "route": "Route",
+        })
+
+        st.dataframe(
+            price_drop_display,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Previous Price": st.column_config.NumberColumn(
+                    "Previous Price",
+                    format="$%d",
+                ),
+                "Price Drop": st.column_config.NumberColumn(
+                    "Price Drop",
+                    format="$%d",
+                ),
+                "Drop %": st.column_config.NumberColumn(
+                    "Drop %",
+                    format="%.1f%%",
+                ),
+                "Deal Score": st.column_config.ProgressColumn(
+                    "Deal Score",
+                    min_value=0,
+                    max_value=100,
+                ),
+            },
+        )
+
+
 
     if explore_anywhere:
         st.subheader("Explore Anywhere Summary")
